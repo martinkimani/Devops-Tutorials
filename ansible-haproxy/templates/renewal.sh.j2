@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sudo cat "/etc/letsencrypt/live/{{ item.name}}/fullchain.pem" "/etc/letsencrypt/live/{{ item.name}}/privkey.pem" | sudo tee "/opt/certs/{{ item.name}}.pem"
+sudo systemctl restart haproxy

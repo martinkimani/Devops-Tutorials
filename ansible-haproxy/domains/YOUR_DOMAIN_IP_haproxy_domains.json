@@ -1,0 +1,20 @@
+[
+    {
+        "name": "crm.baysidesms.co.ke",
+        "renewal_script": "crm-bayside-renewal.sh",
+        "frontend_acl": "crm-bayside-sub",
+        "backend_name": "crm-bayside-servers",
+        "backend_servers": [
+            {
+                "vm":"vm-01-crm-1",
+                "ip": "localhost",
+                "port": "62000"
+            },
+            {
+                "vm":"vm-01-crm-2",
+                "ip": "localhost",
+                "port": "62001"
+            }
+        ]
+    }
+]

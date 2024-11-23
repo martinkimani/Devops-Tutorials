@@ -1,0 +1,13 @@
+all:
+  hosts:
+    haproxynodes:
+      ansible_host: "{{ domain_ip}}"
+      ansible_user: appuser
+
+  vars:
+    email: martin@baysidesms.co.ke
+    ha_admin_user: haprxyadmin
+    ha_admin_pass: 'XXXXXXXXXXXXXXX'
+    ha_max_conn: 10000
+    domain_json_file: "domains/{{ ansible_host }}_haproxy_domains.json"
+    domain_list: "{{ lookup('file', domain_json_file) | from_json }}"

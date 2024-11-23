@@ -1,0 +1,112 @@
+---
+- hosts: haproxynodes 
+  gather_facts: no
+  become: true
+
+  tasks:
+    - name: initial setup and preparation
+      tags: init-setup
+      block:  
+        - name: update repository cache
+          apt:
+            update_cache: yes
+            cache_valid_time: 3600
+          
+        - name: install snap package
+          apt:
+            name: snapd
+            state: present
+
+        - name: install rsyslog package
+          apt:
+            name: rsyslog
+            state: present
+
+        - name: install haproxy package
+          ansible.builtin.apt:
+            name: haproxy
+            state: present
+
+        - name: install certbot and create a symlink to /usr/bin
+          become: true
+          ansible.builtin.shell:
+            cmd: |
+              snap install --classic certbot
+              ln -s /snap/bin/certbot /usr/bin/certbot
+
+        - name: Creates certs directory where concatenated certs will be stored
+          ansible.builtin.file:
+            path: /opt/certs
+            state: directory
+
+    - name: add lua module for cors resolution
+      tags: lua-cors
+      become: true
+      block:
+        - name: copy cors resolution file to haproxy folder
+          copy:
+            src: files/cors.lua
+            dest: /etc/haproxy/cors.lua
+
+    - name: Generate all domains certificates
+      tags: gen-certs
+      become: true
+      block:
+        - name: stop haproxy service if installed
+          service:
+            name: haproxy
+            state: stopped 
+
+        - name: generate certicates with certbot
+          ansible.builtin.shell:
+            cmd: |
+              certbot certonly --standalone --preferred-challenges http --http-01-port 80 -d {{ item.name }} --non-interactive --agree-tos --email {{ email }}
+          args:
+            creates: "/opt/certs/{{item.name}}.pem"
+          loop: '{{ domain_list }}'
+
+        - name: concat cert and private key to one certificate
+          ansible.builtin.shell:
+            cmd: |
+              cat "/etc/letsencrypt/live/{{item.name}}/fullchain.pem" "/etc/letsencrypt/live/{{item.name}}/privkey.pem" | sudo tee "/opt/certs/{{item.name}}.pem"
+          args:
+            creates: "/opt/certs/{{item.name}}.pem"
+          loop: '{{ domain_list }}'
+        
+        - name: Copy auto-renewal scripts
+          tags: copy-scripts
+          ansible.builtin.template:
+              src: templates/renewal.sh.j2
+              dest: /etc/letsencrypt/renewal-hooks/post/{{ item.renewal_script }}
+          loop: '{{ domain_list }}'
+
+        - name: Add pre and post hooks for renewal
+          tags: hooks
+          ansible.builtin.blockinfile:
+              path: /etc/letsencrypt/renewal/{{ item.name }}.conf
+              block:  |
+                pre_hook = sudo systemctl stop haproxy
+                post_hook = sudo sh /etc/letsencrypt/renewal-hooks/post/{{ item.renewal_script }}
+              state: present
+              backup: yes
+          loop: '{{ domain_list }}'
+
+    - name: install haproxy and configure domain frontend and backends
+      tags: haproxy
+      become: true
+      block:
+        - name: configure haproxy
+          ansible.builtin.template:
+              src: templates/haproxy.cfg.j2
+              dest: /etc/haproxy/haproxy.cfg
+              backup: true
+
+        - name: "Validate haproxy configurations"
+          ansible.builtin.shell: "haproxy -f /etc/haproxy/haproxy.cfg -c"
+          register: result
+          failed_when: '"Configuration file is valid" not in result.stdout_lines'
+
+        - name: restart haproxy service
+          service:
+            name: haproxy
+            state: restarted 
