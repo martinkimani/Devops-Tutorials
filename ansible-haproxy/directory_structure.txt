@@ -1,0 +1,22 @@
+ansible-haproxy
+└── ansible-haproxy
+|   ├── group_vars
+|       └── all.yml
+|   ├── host_vars
+|       └── example_host.yml
+|   ├── roles
+|       └── haproxy
+|           ├── tasks
+|               └── main.yml
+|           ├── templates
+|               └── haproxy.cfg.j2
+|           ├── handlers
+|               └── main.yml
+|           ├── defaults
+|               └── main.yml
+|           ├── vars
+|               └── main.yml
+|           └── files
+|   ├── inventory
+|   ├── playbook.yml
+|   └── README.md

@@ -1,9 +1,9 @@
 [
     {
-        "name": "crm.baysidesms.co.ke",
-        "renewal_script": "crm-bayside-renewal.sh",
-        "frontend_acl": "crm-bayside-sub",
-        "backend_name": "crm-bayside-servers",
+        "name": "crm.zenzicraft.com",
+        "renewal_script": "crm-zenzicraft-renewal.sh",
+        "frontend_acl": "crm-zenzicraft-sub",
+        "backend_name": "crm-zenzicraft-servers",
         "backend_servers": [
             {
                 "vm":"vm-01-crm-1",
